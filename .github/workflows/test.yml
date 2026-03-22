@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB:       testdb
+          POSTGRES_USER:     testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        options: --health-cmd "redis-cli ping" --health-interval 10s
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://testuser:testpass@localhost/testdb
+          REDIS_URL:    redis://localhost:6379/0
+          BOT_TOKEN:    0000000000:test_token_placeholder
+          JWT_SECRET:   test_secret_key
+          ENV:          development
+        run: pytest tests/ -v --cov=. --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml

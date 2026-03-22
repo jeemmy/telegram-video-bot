@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BotPanel — لوحة التحكم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c10;--surface:#111318;--surface2:#181c24;--surface3:#1e2330;--border:#222630;--border2:#2e3340;--accent:#4f7cff;--accent2:#7b55f5;--green:#22d47a;--amber:#f5a623;--red:#f04f4f;--teal:#1dd6b0;--text:#e8eaf0;--muted:#7a8096;--muted2:#4a5068;--mono:'JetBrains Mono',monospace;--sans:'IBM Plex Sans Arabic',sans-serif;--r:10px;--rl:14px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:14px;line-height:1.6;}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;right:0;bottom:0;z-index:100;}
+.logo{padding:22px 20px 18px;border-bottom:1px solid var(--border);margin-bottom:10px;}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:9px;}
+.logo-text{font-size:15px;font-weight:600;}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.nav-section{padding:0 10px;margin-bottom:4px;}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);padding:8px 8px 4px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r);cursor:pointer;color:var(--muted);font-size:13px;transition:all .15s;border:none;background:none;width:100%;text-align:right;font-family:var(--sans);}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(79,124,255,.12);color:var(--accent);font-weight:500;}
+.nav-icon{width:18px;text-align:center;font-size:14px;flex-shrink:0;}
+.nav-badge{margin-right:auto;background:var(--red);color:#fff;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:99px;font-weight:500;}
+.sidebar-footer{margin-top:auto;padding:14px 18px 0;border-top:1px solid var(--border);}
+.bot-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.main{flex:1;margin-right:220px;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:50;}
+.page-title{font-size:15px;font-weight:500;}
+.ticker{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;}
+.ticker-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.topbar-btn{width:32px;height:32px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;}
+.topbar-btn:hover{border-color:var(--border2);color:var(--text);}
+.avatar{width:32px;height:32px;border-radius:var(--r);background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;}
+.content{padding:20px 24px;flex:1;}
+.view{display:none;}
+.view.active{display:block;}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.fade-in{animation:fi .2s ease;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title{font-size:13px;font-weight:500;}
+.card-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:48px;height:48px;border-radius:0 0 0 100%;opacity:.07;}
+.stat-card.blue::before{background:var(--accent);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.amber::before{background:var(--amber);}
+.stat-card.teal::before{background:var(--teal);}
+.stat-icon{font-size:17px;margin-bottom:10px;}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.stat-value{font-size:24px;font-weight:600;font-family:var(--mono);line-height:1;}
+.stat-delta{font-size:11px;margin-top:5px;}
+.stat-delta.up{color:var(--green);}
+.stat-delta.down{color:var(--red);}
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:18px;}
+.bar-chart{display:flex;align-items:flex-end;gap:5px;height:108px;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar{width:100%;border-radius:4px 4px 0 0;cursor:pointer;transition:opacity .2s;}
+.bar:hover{opacity:.72;}
+.bar-label{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.donut-wrap{display:flex;align-items:center;gap:16px;}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:9px;}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:12px;}
+.legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
+.legend-name{color:var(--muted);flex:1;}
+.legend-pct{font-family:var(--mono);font-size:12px;font-weight:500;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:right;padding:9px 13px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+tbody td{padding:11px 13px;font-size:13px;vertical-align:middle;}
+.user-cell{display:flex;align-items:center;gap:9px;}
+.user-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.user-name{font-weight:500;font-size:13px;line-height:1.3;}
+.user-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:1px;}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+.badge-pro{background:rgba(79,124,255,.15);color:#85b7eb;border:1px solid rgba(79,124,255,.3);}
+.badge-free{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.badge-banned{background:rgba(240,79,79,.15);color:#f09595;border:1px solid rgba(240,79,79,.3);}
+
+/* search */
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:12px;transition:border-color .15s;}
+.search-bar:focus-within{border-color:var(--accent);}
+.search-bar input{background:none;border:none;outline:none;color:var(--text);font-family:var(--sans);font-size:13px;flex:1;}
+.search-bar input::placeholder{color:var(--muted2);}
+
+/* filter row */
+.filter-row{display:flex;align-items:center;gap:7px;margin-bottom:12px;flex-wrap:wrap;}
+.pill{font-size:11px;padding:4px 12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--sans);}
+.pill:hover{border-color:var(--border2);color:var(--text);}
+.pill.active{background:rgba(79,124,255,.12);border-color:rgba(79,124,255,.4);color:var(--accent);}
+.filter-count{font-size:11px;color:var(--muted2);}
+
+/* buttons */
+.btn{border:1px solid var(--border);border-radius:7px;padding:5px 12px;font-size:11px;color:var(--muted);cursor:pointer;font-family:var(--sans);background:none;transition:all .15s;white-space:nowrap;}
+.btn:hover{border-color:var(--border2);color:var(--text);}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:500;}
+.btn.primary:hover{opacity:.85;}
+.btn.danger:hover{border-color:var(--red);color:var(--red);}
+.btn.success:hover{border-color:var(--green);color:var(--green);}
+.btn-row{display:flex;gap:5px;}
+.mono{font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:500px;overflow:hidden;transform:translateY(8px);transition:transform .2s;}
+.overlay.open .modal{transform:none;}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:500;}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;font-family:var(--sans);}
+.modal-close:hover{color:var(--text);background:var(--surface2);}
+.modal-body{padding:20px 22px;max-height:72vh;overflow-y:auto;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+
+/* Form */
+.form-group{margin-bottom:14px;}
+.form-label{font-size:10px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;text-transform:uppercase;letter-spacing:.06em;}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:9px 13px;color:var(--text);font-family:var(--sans);font-size:13px;transition:border-color .15s;outline:none;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-select option{background:var(--surface2);}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.6;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* Plan picker */
+.plan-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;}
+.plan-opt{border:1px solid var(--border);border-radius:var(--r);padding:12px 8px;cursor:pointer;transition:all .15s;text-align:center;}
+.plan-opt:hover{border-color:var(--border2);}
+.plan-opt.sel-free  {border-color:var(--muted2);background:rgba(74,80,104,.15);}
+.plan-opt.sel-pro   {border-color:var(--accent);background:rgba(79,124,255,.1);}
+.plan-opt.sel-banned{border-color:var(--red);background:rgba(240,79,79,.1);}
+.plan-opt-icon{font-size:20px;margin-bottom:5px;}
+.plan-opt-name{font-size:12px;font-weight:500;}
+.plan-opt-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* User detail in modal */
+.u-header{display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.u-av-lg{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;flex-shrink:0;}
+.u-name{font-size:15px;font-weight:500;}
+.u-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px;}
+.info-box{background:var(--surface2);border-radius:var(--r);padding:10px 12px;}
+.info-box-label{font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.info-box-val{font-size:13px;font-weight:500;font-family:var(--mono);}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+
+/* Confirm strip */
+.confirm-strip{background:rgba(240,79,79,.07);border:1px solid rgba(240,79,79,.2);border-radius:var(--r);padding:10px 14px;font-size:12px;color:#f09595;margin-top:12px;display:none;}
+.confirm-strip.show{display:block;}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--surface3);border:1px solid var(--border2);border-radius:10px;padding:9px 18px;font-size:13px;z-index:999;opacity:0;transition:all .22s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:rgba(34,212,122,.35);color:var(--green);}
+.toast.err{border-color:rgba(240,79,79,.35);color:var(--red);}
+.toast.warn{border-color:rgba(245,166,35,.35);color:var(--amber);}
+
+/* Logs */
+.log-line{display:flex;gap:11px;align-items:flex-start;padding:7px 14px;border-bottom:1px solid var(--border);font-size:12px;font-family:var(--mono);transition:background .1s;}
+.log-line:hover{background:var(--surface2);}
+.log-time{color:var(--muted2);white-space:nowrap;flex-shrink:0;}
+.log-lvl{width:40px;text-align:center;border-radius:4px;padding:1px 3px;flex-shrink:0;font-size:10px;font-weight:600;}
+.log-lvl.ok{background:rgba(34,212,122,.1);color:var(--green);}
+.log-lvl.err{background:rgba(240,79,79,.1);color:var(--red);}
+.log-lvl.warn{background:rgba(245,166,35,.1);color:var(--amber);}
+.log-lvl.info{background:rgba(79,124,255,.1);color:var(--accent);}
+.log-msg{color:var(--text);flex:1;}
+.log-u{color:#1dd6b0;}
+
+/* Misc */
+.alert{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border-radius:var(--r);margin-bottom:8px;border:1px solid;}
+.alert.warn{background:rgba(245,166,35,.07);border-color:rgba(245,166,35,.2);}
+.alert.err{background:rgba(240,79,79,.07);border-color:rgba(240,79,79,.2);}
+.alert.ok{background:rgba(34,212,122,.07);border-color:rgba(34,212,122,.2);}
+.alert-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+.alert-title{font-size:13px;font-weight:500;}
+.alert-body{font-size:11px;color:var(--muted);margin-top:2px;}
+.toggle{width:36px;height:20px;background:var(--surface2);border:1px solid var(--border2);border-radius:99px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--accent);border-color:var(--accent);}
+.toggle::after{content:'';width:14px;height:14px;background:var(--muted);border-radius:50%;position:absolute;top:2px;right:2px;transition:transform .2s,background .2s;}
+.toggle.on::after{background:#fff;transform:translateX(-16px);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);}
+.toggle-row:last-child{border-bottom:none;}
+.toggle-name{font-size:13px;font-weight:500;}
+.toggle-desc{font-size:11px;color:var(--muted);margin-top:1px;}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.btn-primary{background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:9px 20px;font-size:13px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:opacity .15s;}
+.btn-primary:hover{opacity:.85;}
+.btn-ghost{background:none;color:var(--muted);border:1px solid var(--border);border-radius:var(--r);padding:9px 16px;font-size:13px;font-family:var(--sans);cursor:pointer;transition:all .15s;}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── Referrals ── */
+.ref-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.ref-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:15px 17px;}
+.ref-stat-icon{font-size:17px;margin-bottom:8px;}
+.ref-stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.ref-stat-val{font-size:22px;font-weight:600;font-family:var(--mono);line-height:1;}
+.ref-stat-delta{font-size:11px;color:var(--green);margin-top:4px;}
+
+.referrer-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:10px;overflow:hidden;transition:border-color .15s;}
+.referrer-card:hover{border-color:var(--border2);}
+.referrer-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;}
+.referrer-header:hover .ref-expand-icon{color:var(--text);}
+.ref-av{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0;}
+.ref-name{font-size:13px;font-weight:500;line-height:1.3;}
+.ref-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:1px;}
+.ref-chips{display:flex;gap:6px;margin-right:auto;align-items:center;flex-wrap:wrap;}
+.chip{font-size:10px;padding:2px 9px;border-radius:99px;font-weight:500;white-space:nowrap;}
+.chip-blue  {background:rgba(79,124,255,.12);color:#85b7eb;border:1px solid rgba(79,124,255,.2);}
+.chip-green {background:rgba(34,212,122,.1); color:#1D9E75;border:1px solid rgba(34,212,122,.2);}
+.chip-amber {background:rgba(245,166,35,.1); color:#BA7517;border:1px solid rgba(245,166,35,.2);}
+.chip-gray  {background:var(--surface2);     color:var(--muted);border:1px solid var(--border);}
+@media(prefers-color-scheme:dark){
+  .chip-green{color:#5DCAA5;}
+  .chip-amber{color:#FAC775;}
+}
+.ref-expand-icon{font-size:12px;color:var(--muted2);transition:transform .2s,color .15s;flex-shrink:0;}
+.ref-expand-icon.open{transform:rotate(90deg);}
+
+.ref-invited{background:var(--surface2);border-top:1px solid var(--border);display:none;}
+.ref-invited.open{display:block;}
+.invited-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:8px;padding:8px 16px 6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2);border-bottom:1px solid var(--border);}
+.invited-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s;}
+.invited-row:last-child{border-bottom:none;}
+.invited-row:hover{background:var(--surface3);}
+.invited-name{display:flex;align-items:center;gap:8px;}
+.inv-av{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+.inv-name-text{font-size:12px;font-weight:500;}
+.inv-meta{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.ref-empty{padding:20px;text-align:center;font-size:12px;color:var(--muted2);}
+
+.ref-search-bar{display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:12px;transition:border-color .15s;}
+.ref-search-bar:focus-within{border-color:var(--accent);}
+.ref-search-bar input{background:none;border:none;outline:none;color:var(--text);font-family:var(--sans);font-size:13px;flex:1;}
+.ref-search-bar input::placeholder{color:var(--muted2);}
+
+.leaderboard-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);transition:background .1s;}
+.leaderboard-row:hover{background:var(--surface2);}
+.lb-rank{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;font-family:var(--mono);flex-shrink:0;}
+.lb-rank.gold  {background:rgba(245,166,35,.15);color:#BA7517;}
+.lb-rank.silver{background:rgba(180,178,169,.15);color:#5F5E5A;}
+.lb-rank.bronze{background:rgba(208,134,80,.15);color:#854F0B;}
+.lb-rank.other {background:var(--surface2);color:var(--muted);}
+.lb-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.lb-bar{height:100%;border-radius:2px;background:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">🤖</div>
+    <div class="logo-text">BotPanel</div>
+    <div class="logo-sub">لوحة إدارة البوت</div>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-label">رئيسية</div>
+    <button class="nav-item active" onclick="showView('overview',this)"><span class="nav-icon">▦</span>نظرة عامة</button>
+    <button class="nav-item" onclick="showView('users',this)"><span class="nav-icon">👥</span>المستخدمون</button>
+    <button class="nav-item" onclick="showView('logs',this)"><span class="nav-icon">📋</span>السجلات<span class="nav-badge">3</span></button>
+  </nav>
+  <nav class="nav-section">
+    <div class="nav-label">إدارة</div>
+    <button class="nav-item" onclick="showView('referrals',this)"><span class="nav-icon">🔗</span>الإحالات</button>
+    <button class="nav-item" onclick="showView('broadcast',this)"><span class="nav-icon">📢</span>بث رسالة</button>
+    <button class="nav-item" onclick="showView('settings',this)"><span class="nav-icon">⚙️</span>الإعدادات</button>
+    <button class="nav-item" onclick="showView('alerts',this)"><span class="nav-icon">🔔</span>التنبيهات<span class="nav-badge">2</span></button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="bot-status"><div class="status-dot"></div><span>البوت يعمل</span></div>
+    <div style="margin-top:5px;font-size:11px;color:var(--muted2);font-family:var(--mono);">uptime: <span id="uptime">4d 7h 22m</span></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="pageTitle">نظرة عامة</div>
+      <div class="ticker"><div class="ticker-dot"></div><span id="liveCount">247 مستخدم نشط الآن</span></div>
+    </div>
+    <div class="topbar-right">
+      <button class="topbar-btn" onclick="refreshData()" title="تحديث">↻</button>
+      <div class="avatar">أد</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div id="view-overview" class="view active fade-in">
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-label">إجمالي المستخدمين</div><div class="stat-value" id="s-users">12,847</div><div class="stat-delta up">↑ +234 هذا الأسبوع</div></div>
+        <div class="stat-card green"><div class="stat-icon">⬇️</div><div class="stat-label">تحميلات اليوم</div><div class="stat-value" id="s-dl">3,291</div><div class="stat-delta up">↑ +18% عن أمس</div></div>
+        <div class="stat-card amber"><div class="stat-icon">💎</div><div class="stat-label">مشتركو Pro</div><div class="stat-value" id="s-pro">891</div><div class="stat-delta up">↑ +12 الأسبوع</div></div>
+        <div class="stat-card teal"><div class="stat-icon">🌐</div><div class="stat-label">معدل النجاح</div><div class="stat-value">94.2%</div><div class="stat-delta up">↑ ثابت</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">التحميلات الأسبوعية</div><div class="card-sub">آخر 7 أيام</div></div></div>
+          <div class="bar-chart" id="barChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">المنصات</div><div class="card-sub">توزيع التحميلات</div></div></div>
+          <div class="donut-wrap">
+            <svg width="86" height="86" viewBox="0 0 86 86">
+              <circle cx="43" cy="43" r="32" fill="none" stroke="#4f7cff" stroke-width="11" stroke-dasharray="90 211" stroke-dashoffset="0" transform="rotate(-90 43 43)"/>
+              <circle cx="43" cy="43" r="32" fill="none" stroke="#22d47a" stroke-width="11" stroke-dasharray="56 245" stroke-dashoffset="-90" transform="rotate(-90 43 43)"/>
+              <circle cx="43" cy="43" r="32" fill="none" stroke="#f5a623" stroke-width="11" stroke-dasharray="34 267" stroke-dashoffset="-146" transform="rotate(-90 43 43)"/>
+              <circle cx="43" cy="43" r="32" fill="none" stroke="#4a5068" stroke-width="11" stroke-dasharray="21 280" stroke-dashoffset="-180" transform="rotate(-90 43 43)"/>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#4f7cff"></div><span class="legend-name">TikTok</span><span class="legend-pct" style="color:#4f7cff">45%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#22d47a"></div><span class="legend-name">YouTube</span><span class="legend-pct" style="color:#22d47a">28%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div><span class="legend-name">Instagram</span><span class="legend-pct" style="color:#f5a623">17%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#4a5068"></div><span class="legend-name">أخرى</span><span class="legend-pct" style="color:#7a8096">10%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">آخر التحميلات</div></div><div class="ticker"><div class="ticker-dot"></div><span style="font-size:11px;color:var(--muted)">مباشر</span></div></div>
+        <div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>المنصة</th><th>الجودة</th><th>الحجم</th><th>الوقت</th><th>الحالة</th></tr></thead><tbody id="recentTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="view-users" class="view fade-in">
+
+      <div class="search-bar">
+        <span style="color:var(--muted2)">🔍</span>
+        <input id="searchInput" type="text" placeholder="ابحث بالاسم أو @username أو Telegram ID..." oninput="filterUsers()">
+        <button class="btn" onclick="clearSearch()" style="padding:3px 9px">مسح ✕</button>
+      </div>
+
+      <div class="filter-row">
+        <button class="pill active" onclick="setFilter('all',this)">الكل</button>
+        <button class="pill" onclick="setFilter('pro',this)">💎 Pro</button>
+        <button class="pill" onclick="setFilter('free',this)">مجاني</button>
+        <button class="pill" onclick="setFilter('banned',this)">محظور</button>
+        <span class="filter-count" id="filterCount" style="margin-right:8px"></span>
+        <button class="btn primary" onclick="openAddModal()" style="margin-right:auto;padding:5px 14px">+ إضافة مستخدم</button>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>المستخدم</th>
+                <th>Telegram ID</th>
+                <th>الخطة</th>
+                <th>تحميلات</th>
+                <th>الحد اليومي</th>
+                <th>آخر نشاط</th>
+                <th>الانضمام</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="usersTable"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-top:1px solid var(--border)">
+          <span style="font-size:11px;color:var(--muted)" id="pageInfo">الصفحة 1</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn" onclick="prevPage()">→ السابق</button>
+            <button class="btn" onclick="nextPage()">التالي ←</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="view-logs" class="view fade-in">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;gap:6px">
+          <button class="pill active" onclick="setPill(this,'.log-filter')">الكل</button>
+          <button class="pill log-filter" onclick="setPill(this,'.log-filter')">أخطاء</button>
+          <button class="pill log-filter" onclick="setPill(this,'.log-filter')">تحميلات</button>
+          <button class="pill log-filter" onclick="setPill(this,'.log-filter')">تحذيرات</button>
+        </div>
+        <button class="btn-ghost" style="padding:6px 12px;font-size:12px">مسح السجل</button>
+      </div>
+      <div class="card" style="padding:0"><div id="logsContainer" style="max-height:520px;overflow-y:auto"></div></div>
+    </div>
+
+    <!-- BROADCAST -->
+    <div id="view-broadcast" class="view fade-in">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px">إرسال رسالة جماعية</div>
+          <div class="form-group"><label class="form-label">المستهدفون</label><select class="form-select"><option>كل المستخدمين (12,847)</option><option>مستخدمو Pro (891)</option><option>المجانيون (11,956)</option><option>نشطون خلال 7 أيام</option></select></div>
+          <div class="form-group"><label class="form-label">نوع الرسالة</label><select class="form-select"><option>نصية</option><option>مع صورة</option><option>مع أزرار</option></select></div>
+          <div class="form-group"><label class="form-label">نص الرسالة</label><textarea class="form-textarea" placeholder="اكتب رسالتك..."></textarea></div>
+          <div class="form-group"><label class="form-label">جدولة (اختياري)</label><input type="datetime-local" class="form-input"></div>
+          <div style="display:flex;gap:10px"><button class="btn-primary">إرسال الآن →</button><button class="btn-ghost">معاينة</button></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:12px">إحصائيات البث</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="background:var(--surface2);border-radius:var(--r);padding:12px"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">آخر بث</div><div style="font-size:18px;font-weight:600;font-family:var(--mono)">11,203</div><div style="font-size:11px;color:var(--green);margin-top:2px">وصل ✓</div></div>
+              <div style="background:var(--surface2);border-radius:var(--r);padding:12px"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">معدل الفتح</div><div style="font-size:18px;font-weight:600;font-family:var(--mono)">68%</div><div style="font-size:11px;color:var(--amber);margin-top:2px">جيد</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="view-settings" class="view fade-in">
+      <div class="settings-grid">
+        <div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:14px">إعدادات البوت</div>
+            <div class="form-group"><label class="form-label">الحد اليومي (مجاني)</label><input type="number" class="form-input" value="5"></div>
+            <div class="form-group"><label class="form-label">الحجم الأقصى (MB)</label><input type="number" class="form-input" value="50"></div>
+            <div class="form-group"><label class="form-label">الجودة الافتراضية</label><select class="form-select"><option>480p</option><option selected>720p</option><option>1080p</option></select></div>
+            <div class="form-group"><label class="form-label">رسالة الترحيب</label><textarea class="form-textarea" style="min-height:65px">مرحباً {name}! أرسل رابط الفيديو 🎬</textarea></div>
+            <button class="btn-primary">حفظ</button>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:12px">المنصات المفعّلة</div>
+            <div class="toggle-row"><div><div class="toggle-name">TikTok</div><div class="toggle-desc">مع إزالة العلامة المائية</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="toggle-name">YouTube</div><div class="toggle-desc">فيديو + Shorts</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="toggle-name">Instagram</div><div class="toggle-desc">Reels + Posts</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="toggle-name">Twitter / X</div><div class="toggle-desc">فيديوهات التغريدات</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="toggle-name">وضع الصيانة</div><div class="toggle-desc">إيقاف لكل المستخدمين</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px">حدود الخطط</div>
+            <div class="form-group"><label class="form-label">حد Pro اليومي (0 = غير محدود)</label><input type="number" class="form-input" value="0"></div>
+            <div class="form-group"><label class="form-label">حد المجاني اليومي</label><input type="number" class="form-input" value="5"></div>
+            <button class="btn-primary">حفظ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REFERRALS -->
+    <div id="view-referrals" class="view fade-in">
+      <div class="ref-stats">
+        <div class="ref-stat"><div class="ref-stat-icon">🔗</div><div class="ref-stat-label">إجمالي الإحالات</div><div class="ref-stat-val">1,243</div><div class="ref-stat-delta">↑ +47 هذا الأسبوع</div></div>
+        <div class="ref-stat"><div class="ref-stat-icon">👤</div><div class="ref-stat-label">محيلون نشطون</div><div class="ref-stat-val">318</div><div class="ref-stat-delta">↑ +12 هذا الأسبوع</div></div>
+        <div class="ref-stat"><div class="ref-stat-icon">🎁</div><div class="ref-stat-label">مكافآت أُعطيت</div><div class="ref-stat-val">954</div><div class="ref-stat-delta" style="color:var(--amber)">تحميلات إضافية</div></div>
+        <div class="ref-stat"><div class="ref-stat-icon">📈</div><div class="ref-stat-label">معدل التحويل</div><div class="ref-stat-val">76%</div><div class="ref-stat-delta">من الروابط المرسلة</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start;">
+        <div>
+          <div class="ref-search-bar">
+            <span style="color:var(--muted2)">🔍</span>
+            <input id="refSearch" type="text" placeholder="ابحث بالاسم أو @username..." oninput="filterReferrers()">
+            <button class="btn" onclick="document.getElementById('refSearch').value='';filterReferrers()" style="padding:3px 9px">مسح</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:11px;color:var(--muted2)" id="refCount"></div>
+            <div style="display:flex;gap:6px;">
+              <button class="pill active" onclick="sortRef('invited',this)">الأكثر إحالة</button>
+              <button class="pill" onclick="sortRef('bonus',this)">الأكثر مكافأة</button>
+              <button class="pill" onclick="sortRef('recent',this)">الأحدث</button>
+            </div>
+          </div>
+          <div id="referrersList"></div>
+        </div>
+        <div>
+          <div class="card" style="padding:0;margin-bottom:12px;">
+            <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border);"><div class="card-title">🏆 لوحة الصدارة</div><div class="card-sub">أكثر المستخدمين إحالة</div></div>
+            <div id="leaderboard"></div>
+          </div>
+          <div class="card" style="padding:14px 16px;">
+            <div class="card-title" style="margin-bottom:12px;">إعدادات الإحالة</div>
+            <div class="form-group"><label class="form-label">مكافأة المُحيل (تحميلات)</label><input type="number" class="form-input" value="3" min="0"></div>
+            <div class="form-group"><label class="form-label">مكافأة المُحال (تحميلات)</label><input type="number" class="form-input" value="1" min="0"></div>
+            <div class="form-group"><label class="form-label">الحد الأقصى مكافآت/يوم</label><input type="number" class="form-input" value="20" min="0"></div>
+            <button class="btn-primary" style="width:100%">حفظ الإعدادات</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div id="view-alerts" class="view fade-in">
+      <div class="alert err"><div class="alert-icon">🔴</div><div><div class="alert-title">خطأ في تحميل YouTube</div><div class="alert-body">فشل 47 طلب خلال آخر ساعة — yt-dlp يحتاج تحديثاً • منذ 23 دقيقة</div></div></div>
+      <div class="alert warn"><div class="alert-icon">🟡</div><div><div class="alert-title">مساحة التخزين تقترب من الامتلاء</div><div class="alert-body">استُهلك 78% من /tmp (39GB/50GB) • منذ ساعة</div></div></div>
+      <div class="alert ok"><div class="alert-icon">🟢</div><div><div class="alert-title">Webhook يعمل بشكل طبيعي</div><div class="alert-body">آخر فحص: للتو — متوسط وقت الاستجابة 124ms</div></div></div>
+      <div style="margin-top:16px"><div class="card">
+        <div class="card-title" style="margin-bottom:12px">إعدادات التنبيهات</div>
+        <div class="toggle-row"><div><div class="toggle-name">تنبيه عند الأخطاء</div><div class="toggle-desc">رسالة تيليغرام للأدمن</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row"><div><div class="toggle-name">تقرير يومي</div><div class="toggle-desc">ملخص كل صباح 8:00</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row"><div><div class="toggle-name">تنبيه نمو المستخدمين</div><div class="toggle-desc">عند كل 1000 مستخدم</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      </div></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ══ EDIT USER MODAL ══ -->
+<div class="overlay" id="editOverlay" onclick="overlayClick(event,'editOverlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">تعديل المستخدم</div>
+      <button class="modal-close" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="u-header">
+        <div class="u-av-lg" id="mAvatar"></div>
+        <div style="flex:1">
+          <div class="u-name" id="mName"></div>
+          <div class="u-sub" id="mMeta"></div>
+        </div>
+        <div id="mBadge"></div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-box"><div class="info-box-label">Telegram ID</div><div class="info-box-val" id="mTgId"></div></div>
+        <div class="info-box"><div class="info-box-label">التحميلات</div><div class="info-box-val" id="mDl"></div></div>
+        <div class="info-box"><div class="info-box-label">آخر نشاط</div><div class="info-box-val" id="mLast" style="font-size:12px"></div></div>
+        <div class="info-box"><div class="info-box-label">الانضمام</div><div class="info-box-val" id="mJoined" style="font-size:12px"></div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-group">
+        <label class="form-label">الخطة / العضوية</label>
+        <div class="plan-options">
+          <div class="plan-opt" id="eopt-free" onclick="selPlan('free')">
+            <div class="plan-opt-icon">👤</div>
+            <div class="plan-opt-name">مجاني</div>
+            <div class="plan-opt-sub">5 تحميلات/يوم</div>
+          </div>
+          <div class="plan-opt" id="eopt-pro" onclick="selPlan('pro')">
+            <div class="plan-opt-icon">💎</div>
+            <div class="plan-opt-name">Pro</div>
+            <div class="plan-opt-sub">غير محدود</div>
+          </div>
+          <div class="plan-opt" id="eopt-banned" onclick="selPlan('banned')">
+            <div class="plan-opt-icon">🚫</div>
+            <div class="plan-opt-name">محظور</div>
+            <div class="plan-opt-sub">بدون وصول</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">حد يومي مخصص (0 = غير محدود)</label>
+          <input type="number" class="form-input" id="mLimit" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pro صالح حتى</label>
+          <input type="date" class="form-input" id="mExpiry">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ملاحظة داخلية</label>
+        <input type="text" class="form-input" id="mNote" placeholder="سبب التعديل...">
+      </div>
+
+      <div class="confirm-strip" id="banConfirm">
+        ⚠ سيتم حظر هذا المستخدم ومنعه من استخدام البوت نهائياً.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeEdit()">إلغاء</button>
+      <button class="btn-primary" onclick="saveEdit()">حفظ التغييرات</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD USER MODAL ══ -->
+<div class="overlay" id="addOverlay" onclick="overlayClick(event,'addOverlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">إضافة مستخدم يدوياً</div>
+      <button class="modal-close" onclick="closeAdd()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Telegram ID *</label><input type="number" class="form-input" id="aTgId" placeholder="123456789"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">الاسم الكامل *</label><input type="text" class="form-input" id="aName" placeholder="أحمد محمد"></div>
+        <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" id="aUsername" placeholder="@username"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الخطة</label>
+        <div class="plan-options">
+          <div class="plan-opt sel-free" id="aopt-free" onclick="selAddPlan('free')"><div class="plan-opt-icon">👤</div><div class="plan-opt-name">مجاني</div></div>
+          <div class="plan-opt" id="aopt-pro" onclick="selAddPlan('pro')"><div class="plan-opt-icon">💎</div><div class="plan-opt-name">Pro</div></div>
+          <div class="plan-opt" id="aopt-banned" onclick="selAddPlan('banned')"><div class="plan-opt-icon">🚫</div><div class="plan-opt-name">محظور</div></div>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">ملاحظة</label><input type="text" class="form-input" id="aNote" placeholder="سبب الإضافة..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeAdd()">إلغاء</button>
+      <button class="btn-primary" onclick="saveAdd()">إضافة المستخدم</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── DATA ─── */
+let DB = [
+  {id:1,tgId:551234, name:'أحمد محمد',     uname:'@ahmed_m',    plan:'pro',    dl:1423,limit:0, last:'الآن',         joined:'يناير 2024', note:''},
+  {id:2,tgId:882901, name:'سارة الحربي',   uname:'@sara_h',     plan:'free',   dl:87,  limit:5, last:'أمس',          joined:'مارس 2024',  note:''},
+  {id:3,tgId:334456, name:'محمد العتيبي',  uname:'@m_otaibi',   plan:'pro',    dl:2011,limit:0, last:'منذ ساعتين',   joined:'نوفمبر 2023',note:'مستخدم مميز'},
+  {id:4,tgId:119023, name:'فاطمة الزهراء', uname:'@fatima_z',   plan:'free',   dl:34,  limit:5, last:'منذ ساعة',     joined:'مايو 2024',  note:''},
+  {id:5,tgId:667788, name:'عمر البكري',    uname:'@omar_b',     plan:'free',   dl:512, limit:8, last:'منذ 3 أيام',   joined:'فبراير 2024',note:'حد مخصص 8'},
+  {id:6,tgId:440012, name:'نور السالم',    uname:'@noor_s',     plan:'banned', dl:0,   limit:0, last:'منذ أسبوع',    joined:'أكتوبر 2023',note:'إساءة استخدام'},
+  {id:7,tgId:993344, name:'خالد الشمري',   uname:'@khalid_sh',  plan:'pro',    dl:3401,limit:0, last:'الآن',         joined:'ديسمبر 2023',note:''},
+  {id:8,tgId:771122, name:'ريم الدوسري',   uname:'@reem_d',     plan:'free',   dl:203, limit:5, last:'منذ 5 ساعات',  joined:'أبريل 2024', note:''},
+  {id:9,tgId:558899, name:'يوسف القحطاني', uname:'@yousef_q',   plan:'pro',    dl:988, limit:0, last:'أمس',          joined:'يناير 2024', note:''},
+  {id:10,tgId:223344,name:'منى الغامدي',   uname:'@mona_g',     plan:'free',   dl:45,  limit:5, last:'منذ يومين',    joined:'يونيو 2024', note:''},
+];
+
+const PLAN_LBL  = {pro:'Pro 💎', free:'مجاني', banned:'محظور 🚫'};
+const AVC       = ['rgba(79,124,255,.18)','rgba(29,214,176,.18)','rgba(245,166,35,.18)','rgba(123,85,245,.18)'];
+const AVT       = ['#85b7eb','#1dd6b0','#f5a623','#b59cf7'];
+
+let filtered   = [...DB];
+let curFilter  = 'all';
+let srch       = '';
+let curPage    = 1;
+const PG       = 10;
+let editId     = null;
+let editPlan   = 'free';
+let addPlanVal = 'free';
+
+/* ─── NAV ─── */
+const TITLES={overview:'نظرة عامة',users:'المستخدمون',logs:'السجلات',referrals:'الإحالات',broadcast:'بث رسالة',settings:'الإعدادات',alerts:'التنبيهات'};
+function showView(n,b){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  const v=document.getElementById('view-'+n);
+  v.classList.remove('fade-in'); void v.offsetWidth; v.classList.add('active','fade-in');
+  if(b)b.classList.add('active');
+  document.getElementById('pageTitle').textContent=TITLES[n]||n;
+}
+
+/* ─── RENDER USERS TABLE ─── */
+function render(){
+  const tbody=document.getElementById('usersTable');
+  const s=(curPage-1)*PG, rows=filtered.slice(s,s+PG);
+  tbody.innerHTML='';
+  rows.forEach(u=>{
+    const ci=u.id%4;
+    tbody.innerHTML+=`
+    <tr>
+      <td><div class="user-cell">
+        <div class="user-av" style="background:${AVC[ci]};color:${AVT[ci]}">${u.name[0]}</div>
+        <div><div class="user-name">${u.name}</div><div class="user-meta">${u.uname}</div></div>
+      </div></td>
+      <td><span class="mono" style="font-size:12px">${u.tgId}</span></td>
+      <td>
+        <span class="badge badge-${u.plan}" style="cursor:pointer" onclick="openEdit(${u.id})" title="انقر لتغيير الخطة">
+          ${PLAN_LBL[u.plan]}
+        </span>
+      </td>
+      <td><span class="mono">${u.dl.toLocaleString()}</span></td>
+      <td><span class="mono">${u.limit===0?'∞':u.limit}</span></td>
+      <td><span style="font-size:12px;color:var(--muted)">${u.last}</span></td>
+      <td><span style="font-size:11px;color:var(--muted2)">${u.joined}</span></td>
+      <td><div class="btn-row">
+        <button class="btn" onclick="openEdit(${u.id})">تعديل</button>
+        <button class="btn ${u.plan==='banned'?'success':'danger'}" onclick="quickBan(${u.id})">
+          ${u.plan==='banned'?'رفع الحظر':'حظر'}
+        </button>
+      </div></td>
+    </tr>`;
+  });
+  const tot=filtered.length, pages=Math.max(1,Math.ceil(tot/PG));
+  document.getElementById('filterCount').textContent=`عرض ${Math.min(s+PG,tot)} من ${tot.toLocaleString()} مستخدم`;
+  document.getElementById('pageInfo').textContent=`الصفحة ${curPage} من ${pages}`;
+}
+
+function applyFilter(){
+  filtered=DB.filter(u=>{
+    const okP=curFilter==='all'||u.plan===curFilter;
+    const q=srch.toLowerCase();
+    const okS=!q||u.name.toLowerCase().includes(q)||u.uname.toLowerCase().includes(q)||String(u.tgId).includes(q);
+    return okP&&okS;
+  });
+  curPage=1; render();
+}
+function filterUsers(){srch=document.getElementById('searchInput').value.trim();applyFilter();}
+function clearSearch(){document.getElementById('searchInput').value='';srch='';applyFilter();}
+function setFilter(p,b){
+  curFilter=p;
+  document.querySelectorAll('.filter-row .pill').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); applyFilter();
+}
+function prevPage(){if(curPage>1){curPage--;render();}}
+function nextPage(){const pp=Math.ceil(filtered.length/PG);if(curPage<pp){curPage++;render();}}
+
+/* ─── EDIT MODAL ─── */
+function openEdit(uid){
+  const u=DB.find(x=>x.id===uid); if(!u)return;
+  editId=uid; editPlan=u.plan;
+  const ci=u.id%4;
+  document.getElementById('mAvatar').textContent=u.name[0];
+  document.getElementById('mAvatar').style.cssText=`background:${AVC[ci]};color:${AVT[ci]};width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;flex-shrink:0`;
+  document.getElementById('mName').textContent=u.name;
+  document.getElementById('mMeta').textContent=u.uname+' • '+u.joined;
+  document.getElementById('mTgId').textContent=u.tgId;
+  document.getElementById('mDl').textContent=u.dl.toLocaleString();
+  document.getElementById('mLast').textContent=u.last;
+  document.getElementById('mJoined').textContent=u.joined;
+  document.getElementById('mLimit').value=u.limit;
+  document.getElementById('mNote').value=u.note||'';
+  document.getElementById('mBadge').innerHTML=`<span class="badge badge-${u.plan}">${PLAN_LBL[u.plan]}</span>`;
+  const exp=new Date(); exp.setMonth(exp.getMonth()+1);
+  document.getElementById('mExpiry').value=exp.toISOString().split('T')[0];
+  updatePlanOpts(editPlan);
+  document.getElementById('banConfirm').classList.remove('show');
+  document.getElementById('editOverlay').classList.add('open');
+}
+function selPlan(p){
+  editPlan=p;
+  updatePlanOpts(p);
+  if(p==='pro')    document.getElementById('mLimit').value=0;
+  if(p==='free')   document.getElementById('mLimit').value=5;
+  if(p==='banned') document.getElementById('mLimit').value=0;
+  document.getElementById('banConfirm').classList.toggle('show', p==='banned');
+}
+function updatePlanOpts(active){
+  ['free','pro','banned'].forEach(p=>{
+    const el=document.getElementById('eopt-'+p);
+    el.className='plan-opt'+(p===active?' sel-'+p:'');
+  });
+}
+function saveEdit(){
+  const u=DB.find(x=>x.id===editId); if(!u)return;
+  const old=u.plan;
+  u.plan=editPlan;
+  u.limit=parseInt(document.getElementById('mLimit').value)||0;
+  u.note=document.getElementById('mNote').value;
+  closeEdit(); applyFilter();
+  const msg=old!==editPlan
+    ?`✓ تم تغيير خطة ${u.name}: ${PLAN_LBL[old]} ← ${PLAN_LBL[editPlan]}`
+    :`✓ تم تحديث بيانات ${u.name}`;
+  toast(msg, old!==editPlan&&editPlan==='banned'?'err':'ok');
+}
+function closeEdit(){document.getElementById('editOverlay').classList.remove('open');editId=null;}
+
+/* ─── QUICK BAN ─── */
+function quickBan(uid){
+  const u=DB.find(x=>x.id===uid); if(!u)return;
+  if(u.plan==='banned'){u.plan='free';u.limit=5;toast(`✓ رُفع الحظر عن ${u.name}`,'ok');}
+  else{u.plan='banned';u.limit=0;toast(`تم حظر ${u.name}`,'err');}
+  applyFilter();
+}
+
+/* ─── ADD MODAL ─── */
+function openAddModal(){
+  addPlanVal='free';
+  ['free','pro','banned'].forEach(p=>{
+    document.getElementById('aopt-'+p).className='plan-opt'+(p==='free'?' sel-free':'');
+  });
+  ['aTgId','aName','aUsername','aNote'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('addOverlay').classList.add('open');
+}
+function selAddPlan(p){
+  addPlanVal=p;
+  ['free','pro','banned'].forEach(x=>{
+    document.getElementById('aopt-'+x).className='plan-opt'+(x===p?' sel-'+p:'');
+  });
+}
+function saveAdd(){
+  const tgId=parseInt(document.getElementById('aTgId').value);
+  const name=document.getElementById('aName').value.trim();
+  if(!tgId||!name){toast('⚠ Telegram ID والاسم مطلوبان','warn');return;}
+  if(DB.find(u=>u.tgId===tgId)){toast('⚠ هذا المعرف موجود مسبقاً','warn');return;}
+  DB.unshift({
+    id:Date.now(),tgId,name,
+    uname:document.getElementById('aUsername').value||'—',
+    plan:addPlanVal,dl:0,
+    limit:addPlanVal==='pro'?0:5,
+    last:'الآن',joined:'الآن',
+    note:document.getElementById('aNote').value,
+  });
+  closeAdd(); applyFilter();
+  toast(`✓ تم إضافة ${name} — ${PLAN_LBL[addPlanVal]}`,'ok');
+}
+function closeAdd(){document.getElementById('addOverlay').classList.remove('open');}
+
+/* ─── OVERLAY CLICK OUTSIDE ─── */
+function overlayClick(e,id){if(e.target.id===id){document.getElementById(id).classList.remove('open');editId=null;}}
+
+/* ─── TOAST ─── */
+let tTimer;
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast ${type} show`;
+  clearTimeout(tTimer); tTimer=setTimeout(()=>el.classList.remove('show'),3200);
+}
+
+/* ─── PILL TOGGLE ─── */
+function setPill(btn,scope){
+  const parent=btn.closest('div');
+  parent.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ─── BAR CHART ─── */
+const BD=[{d:'سبت',v:2100},{d:'أحد',v:3400},{d:'إثن',v:2800},{d:'ثلا',v:3900},{d:'أرب',v:3100},{d:'خمي',v:4200},{d:'جمع',v:3291,a:true}];
+const mx=Math.max(...BD.map(x=>x.v));
+const bc=document.getElementById('barChart');
+BD.forEach(d=>{const h=Math.round(d.v/mx*100);bc.innerHTML+=`<div class="bar-wrap"><div class="bar" style="height:${h}px;background:${d.a?'#7b55f5':'#4f7cff'}" title="${d.v.toLocaleString()}"></div><div class="bar-label">${d.d}</div></div>`;});
+
+/* ─── RECENT TABLE ─── */
+const rP=['TikTok','YouTube','Instagram','Twitter'],rQ=['1080p','720p','480p','صوت'],rN=['أحمد م.','سارة ح.','محمد ع.','فاطمة ر.','عمر ب.','نور س.'],rS=['12.4MB','24.1MB','8.2MB','34.7MB','2.1MB','18.9MB'],rT=['منذ 2 دقيقة','منذ 5 دقائق','منذ 8 دقائق','منذ 11 دقيقة','منذ 14 دقيقة','منذ 18 دقيقة'],rSt=[{t:'✓ ناجح',c:'var(--green)'},{t:'✓ ناجح',c:'var(--green)'},{t:'✗ فاشل',c:'var(--red)'},{t:'✓ ناجح',c:'var(--green)'},{t:'✓ ناجح',c:'var(--green)'},{t:'✓ ناجح',c:'var(--green)'}];
+const rt=document.getElementById('recentTable');
+for(let i=0;i<6;i++)rt.innerHTML+=`<tr><td><div class="user-cell"><div class="user-av" style="background:rgba(79,124,255,.12);color:#85b7eb">${rN[i][0]}</div><span style="font-size:13px">${rN[i]}</span></div></td><td style="font-size:12px">${rP[i%4]}</td><td><span class="mono">${rQ[i%4]}</span></td><td><span class="mono">${rS[i]}</span></td><td><span style="font-size:11px;color:var(--muted2)">${rT[i]}</span></td><td><span style="font-size:12px;color:${rSt[i].c}">${rSt[i].t}</span></td></tr>`;
+
+/* ─── LOGS ─── */
+const LD=[
+  {t:'14:32:01',l:'ok',  m:'تحميل ناجح ',    u:'@ahmed_m',  x:'— TikTok 720p 14.2MB'},
+  {t:'14:31:48',l:'ok',  m:'مستخدم جديد ',   u:'@new_user', x:'— انضم للبوت'},
+  {t:'14:31:22',l:'err', m:'فشل YouTube ',    u:'@m_otaibi', x:'— HTTP 403 Forbidden'},
+  {t:'14:30:55',l:'ok',  m:'تحميل ناجح ',    u:'@fatima_z', x:'— Instagram 8.1MB'},
+  {t:'14:30:31',l:'warn',m:'تجاوز الحد ',     u:'@omar_b',   x:'— رد برسالة الترقية'},
+  {t:'14:29:17',l:'info',m:'webhook فعّال',   u:'',          x:'— update_id 7482'},
+  {t:'14:28:44',l:'ok',  m:'Pro مفعّل ',      u:'@ahmed_m',  x:'— via Admin Panel'},
+  {t:'14:27:59',l:'err', m:'ملف كبير جداً ',  u:'@khalid_sh',x:'— 187MB > 50MB'},
+  {t:'14:26:33',l:'info',m:'Bot polling',     u:'',          x:'— active'},
+  {t:'14:25:11',l:'ok',  m:'تحميل ناجح ',    u:'@yousef_q', x:'— YouTube Shorts 18.7MB'},
+  {t:'14:24:08',l:'warn',m:'rate limit ',     u:'',          x:'— YouTube تأخير 30s'},
+  {t:'14:22:50',l:'ok',  m:'تحميل ناجح ',    u:'@reem_d',   x:'— TikTok 2.3MB'},
+];
+const lc=document.getElementById('logsContainer');
+LD.forEach(l=>lc.innerHTML+=`<div class="log-line"><span class="log-time">${l.t}</span><span class="log-lvl ${l.l}">${l.l.toUpperCase()}</span><span class="log-msg">${l.m}<span class="log-u">${l.u}</span><span style="color:var(--muted2)"> ${l.x}</span></span></div>`);
+
+/* ─── LIVE / REFRESH ─── */
+let liveN=247;
+setInterval(()=>{liveN+=Math.floor(Math.random()*3)-1;liveN=Math.max(200,liveN);document.getElementById('liveCount').textContent=liveN+' مستخدم نشط الآن';},3000);
+function refreshData(){const v=document.querySelector('.view.active');v.classList.remove('fade-in');void v.offsetWidth;v.classList.add('fade-in');document.getElementById('s-dl').textContent=(Math.floor(Math.random()*500)+3000).toLocaleString();toast('✓ تم التحديث','ok');}
+
+/* ─── REFERRALS DATA ─── */
+const REF_DB = [
+  {
+    id:1, name:'أحمد محمد',    uname:'@ahmed_m',   plan:'pro',  invited:23, bonus:69, joinedAgo:'يناير 2024',
+    invitees:[
+      {id:11,name:'سلمى أحمد',    uname:'@salma_a',  plan:'free',dl:45, joined:'مارس 2024',    bonus:3},
+      {id:12,name:'تركي السبيعي', uname:'@turki_s',  plan:'pro', dl:312,joined:'أبريل 2024',   bonus:3},
+      {id:13,name:'لمى الشهري',   uname:'@lama_sh',  plan:'free',dl:18, joined:'مايو 2024',    bonus:3},
+      {id:14,name:'فيصل الدوسري', uname:'@faisal_d', plan:'free',dl:77, joined:'يونيو 2024',   bonus:3},
+      {id:15,name:'نوف القحطاني', uname:'@noof_q',   plan:'pro', dl:201,joined:'يوليو 2024',   bonus:3},
+    ]
+  },
+  {
+    id:2, name:'خالد الشمري',   uname:'@khalid_sh', plan:'pro',  invited:18, bonus:54, joinedAgo:'ديسمبر 2023',
+    invitees:[
+      {id:21,name:'ريم البكري',   uname:'@reem_b',   plan:'free',dl:33, joined:'يناير 2024',   bonus:3},
+      {id:22,name:'عادل العتيبي', uname:'@adel_o',   plan:'pro', dl:540,joined:'فبراير 2024',  bonus:3},
+      {id:23,name:'ميساء الحربي', uname:'@maysa_h',  plan:'free',dl:12, joined:'مارس 2024',    bonus:3},
+    ]
+  },
+  {
+    id:3, name:'محمد العتيبي',  uname:'@m_otaibi',  plan:'pro',  invited:15, bonus:45, joinedAgo:'نوفمبر 2023',
+    invitees:[
+      {id:31,name:'دانا المطيري', uname:'@dana_m',   plan:'pro', dl:188,joined:'ديسمبر 2023',  bonus:3},
+      {id:32,name:'وليد الشهري', uname:'@walid_sh', plan:'free',dl:29, joined:'يناير 2024',   bonus:3},
+    ]
+  },
+  {
+    id:4, name:'سارة الحربي',   uname:'@sara_h',    plan:'free', invited:9,  bonus:27, joinedAgo:'مارس 2024',
+    invitees:[
+      {id:41,name:'حسن الغامدي', uname:'@hassan_g', plan:'free',dl:14, joined:'أبريل 2024',   bonus:3},
+      {id:42,name:'نورة السالم', uname:'@noura_s',  plan:'free',dl:8,  joined:'أبريل 2024',   bonus:3},
+    ]
+  },
+  {
+    id:5, name:'يوسف القحطاني', uname:'@yousef_q',  plan:'pro',  invited:7,  bonus:21, joinedAgo:'يناير 2024',
+    invitees:[
+      {id:51,name:'أروى العمري', uname:'@arwa_a',   plan:'free',dl:61, joined:'مارس 2024',    bonus:3},
+    ]
+  },
+  {
+    id:6, name:'ريم الدوسري',   uname:'@reem_d',    plan:'free', invited:4,  bonus:12, joinedAgo:'أبريل 2024',
+    invitees:[
+      {id:61,name:'علي الزهراني',uname:'@ali_z',    plan:'free',dl:5,  joined:'مايو 2024',    bonus:3},
+    ]
+  },
+];
+
+let refFiltered = [...REF_DB];
+let refSortKey  = 'invited';
+let openCards   = new Set();
+
+const AVC2=['rgba(79,124,255,.18)','rgba(29,214,176,.18)','rgba(245,166,35,.18)','rgba(123,85,245,.18)','rgba(240,79,79,.15)','rgba(34,212,122,.15)'];
+const AVT2=['#85b7eb','#1dd6b0','#f5a623','#b59cf7','#f09595','#5DCAA5'];
+const PLBL={pro:'Pro 💎',free:'مجاني',banned:'محظور'};
+const PBADGE={pro:'badge-pro',free:'badge-free',banned:'badge-banned'};
+const PCHIP={pro:'chip-blue',free:'chip-gray',banned:'chip-gray'};
+
+function filterReferrers(){
+  const q=document.getElementById('refSearch').value.trim().toLowerCase();
+  refFiltered=REF_DB.filter(r=>!q||r.name.toLowerCase().includes(q)||r.uname.toLowerCase().includes(q));
+  renderReferrers();
+}
+function sortRef(key,btn){
+  refSortKey=key;
+  document.querySelectorAll('#view-referrals .pill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  renderReferrers();
+}
+function toggleCard(id){
+  openCards.has(id)?openCards.delete(id):openCards.add(id);
+  renderReferrers();
+}
+
+function renderReferrers(){
+  const sorted=[...refFiltered].sort((a,b)=>{
+    if(refSortKey==='bonus')  return b.bonus-a.bonus;
+    if(refSortKey==='recent') return b.id-a.id;
+    return b.invited-a.invited;
+  });
+  document.getElementById('refCount').textContent=`عرض ${sorted.length} محيل`;
+  const maxInv=Math.max(...sorted.map(r=>r.invited),1);
+  const container=document.getElementById('referrersList');
+  container.innerHTML='';
+
+  sorted.forEach(r=>{
+    const ci=r.id%6;
+    const isOpen=openCards.has(r.id);
+    const pct=Math.round(r.invited/maxInv*100);
+
+    let inviteesHTML='';
+    if(r.invitees.length===0){
+      inviteesHTML=`<div class="ref-empty">لا يوجد مستخدمون مدعوون بعد</div>`;
+    } else {
+      inviteesHTML=`
+        <div class="invited-header">
+          <span>المستخدم المدعو</span>
+          <span>الخطة</span>
+          <span>التحميلات</span>
+          <span>الانضمام</span>
+          <span>المكافأة</span>
+        </div>`;
+      r.invitees.forEach(inv=>{
+        const ic=inv.id%6;
+        inviteesHTML+=`
+        <div class="invited-row">
+          <div class="invited-name">
+            <div class="inv-av" style="background:${AVC2[ic]};color:${AVT2[ic]}">${inv.name[0]}</div>
+            <div>
+              <div class="inv-name-text">${inv.name}</div>
+              <div class="inv-meta">${inv.uname}</div>
+            </div>
+          </div>
+          <span><span class="badge ${PBADGE[inv.plan]}">${PLBL[inv.plan]}</span></span>
+          <span class="mono" style="font-size:12px">${inv.dl.toLocaleString()}</span>
+          <span style="font-size:11px;color:var(--muted)">${inv.joined}</span>
+          <span><span class="chip chip-green">+${inv.bonus} تحميل</span></span>
+        </div>`;
+      });
+    }
+
+    const card=document.createElement('div');
+    card.className='referrer-card';
+    card.innerHTML=`
+      <div class="referrer-header" onclick="toggleCard(${r.id})">
+        <div class="ref-av" style="background:${AVC2[ci]};color:${AVT2[ci]}">${r.name[0]}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="ref-name">${r.name}</div>
+          <div class="ref-meta">${r.uname} • انضم ${r.joinedAgo}</div>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;max-width:120px;">
+              <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:2px;"></div>
+            </div>
+            <span style="font-size:10px;color:var(--muted2);font-family:var(--mono);">${pct}%</span>
+          </div>
+        </div>
+        <div class="ref-chips">
+          <span class="badge ${PBADGE[r.plan]}">${PLBL[r.plan]}</span>
+          <span class="chip chip-blue">👥 ${r.invited} مدعو</span>
+          <span class="chip chip-green">🎁 ${r.bonus} تحميل</span>
+        </div>
+        <div class="ref-expand-icon ${isOpen?'open':''}">▶</div>
+      </div>
+      <div class="ref-invited ${isOpen?'open':''}">${inviteesHTML}</div>`;
+    container.appendChild(card);
+  });
+
+  /* leaderboard */
+  const top=[...REF_DB].sort((a,b)=>b.invited-a.invited).slice(0,6);
+  const maxTop=top[0]?.invited||1;
+  const lb=document.getElementById('leaderboard');
+  lb.innerHTML='';
+  top.forEach((r,i)=>{
+    const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'other';
+    const ci=r.id%6;
+    lb.innerHTML+=`
+    <div class="leaderboard-row">
+      <div class="lb-rank ${rankClass}">${i+1}</div>
+      <div class="ref-av" style="background:${AVC2[ci]};color:${AVT2[ci]};width:28px;height:28px;border-radius:7px;font-size:12px">${r.name[0]}</div>
+      <div style="flex:1;min-width:0;margin:0 10px;">
+        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.name}</div>
+        <div class="lb-bar-wrap" style="margin-top:4px;"><div class="lb-bar" style="width:${Math.round(r.invited/maxTop*100)}%"></div></div>
+      </div>
+      <span class="chip chip-blue" style="font-size:10px;">${r.invited}</span>
+    </div>`;
+  });
+}
+
+/* ─── INIT ─── */
+render();
+renderReferrers();
+</script>
+</body>
+</html>

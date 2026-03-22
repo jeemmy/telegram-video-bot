@@ -1,0 +1,41 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: production
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/botproject
+            git pull origin main
+            docker compose up -d --build api bot worker_pro worker_free
+            bash scripts/health_check.sh
+            echo "✅ Deployed ${{ github.sha }}"

@@ -1,0 +1,127 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [botnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    networks: [botnet]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      retries: 3
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 2
+    env_file: .env.prod
+    expose: ["8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+    networks: [botnet]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    command: python bot/main.py
+    env_file: .env.prod
+    expose: ["8443"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+    volumes:
+      - /tmp/downloads:/tmp/downloads
+    networks: [botnet]
+
+  worker_pro:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    command: celery -A worker.celery_app worker -Q pro --concurrency=8 -n pro@%h --loglevel=warning
+    env_file: .env.prod
+    depends_on: [redis, postgres]
+    volumes:
+      - /tmp/downloads:/tmp/downloads
+    networks: [botnet]
+
+  worker_free:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    command: celery -A worker.celery_app worker -Q free --concurrency=4 -n free@%h --loglevel=warning
+    env_file: .env.prod
+    depends_on: [redis, postgres]
+    volumes:
+      - /tmp/downloads:/tmp/downloads
+    networks: [botnet]
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    command: celery -A worker.celery_app flower --port=5555
+    env_file: .env.prod
+    expose: ["5555"]
+    depends_on: [redis]
+    networks: [botnet]
+
+  nginx:
+    image: nginx:1.25-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+      - /var/www/dashboard:/var/www/dashboard:ro
+    depends_on: [api, bot]
+    networks: [botnet]
+
+networks:
+  botnet:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,57 @@
+# Environment
+.env
+.env.prod
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+venv/
+env/
+.venv/
+
+# Downloads temp
+/tmp/downloads/
+*.mp4
+*.mp3
+*.m4a
+*.webm
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backups
+/opt/backups/
+*.sql.gz
+*.bak
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+
+# SSL
+ssl/
+*.pem
+*.key
+*.crt
